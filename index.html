@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>স্ক্যানার অ্যাপ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #2575fc, #6a11cb);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .app-description {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        .scanner-section {
+            margin-bottom: 30px;
+        }
+        
+        .camera-container {
+            width: 100%;
+            height: 300px;
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            border: 2px dashed #2575fc;
+        }
+        
+        #camera-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        
+        .camera-placeholder {
+            text-align: center;
+            color: #666;
+        }
+        
+        .camera-placeholder i {
+            font-size: 60px;
+            margin-bottom: 15px;
+            color: #2575fc;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #scan-btn {
+            background-color: #2575fc;
+            color: white;
+        }
+        
+        #scan-btn:hover {
+            background-color: #1a68e8;
+            transform: translateY(-2px);
+        }
+        
+        #copy-btn {
+            background-color: #6a11cb;
+            color: white;
+        }
+        
+        #copy-btn:hover {
+            background-color: #5a0db3;
+            transform: translateY(-2px);
+        }
+        
+        .result-section {
+            margin-bottom: 30px;
+        }
+        
+        .result-box {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .result-box h3 {
+            margin-bottom: 10px;
+            color: #2575fc;
+        }
+        
+        #scanned-number {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: white;
+        }
+        
+        .history-section h2 {
+            margin-bottom: 15px;
+            color: #2575fc;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+        }
+        
+        #history-list {
+            list-style-type: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 12px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #6a11cb;
+        }
+        
+        .history-number {
+            font-weight: bold;
+        }
+        
+        .history-date {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .empty-history {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .camera-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>স্ক্যানার অ্যাপ্লিকেশন</h1>
+            <p class="app-description">ক্যামেরা দিয়ে নাম্বার স্ক্যান করুন এবং স্বয়ংক্রিয়ভাবে কপি করুন</p>
+        </header>
+        
+        <div class="main-content">
+            <section class="scanner-section">
+                <div class="camera-container">
+                    <video id="camera-preview" autoplay playsinline></video>
+                    <div class="camera-placeholder">
+                        <i>📷</i>
+                        <p>ক্যামেরা প্রস্তুত</p>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button id="scan-btn">স্ক্যান করুন</button>
+                    <button id="copy-btn">নাম্বার কপি করুন</button>
+                </div>
+            </section>
+            
+            <section class="result-section">
+                <div class="result-box">
+                    <h3>স্ক্যানকৃত নাম্বার</h3>
+                    <input type="text" id="scanned-number" placeholder="এখানে স্ক্যানকৃত নাম্বার দেখানো হবে" readonly>
+                </div>
+            </section>
+            
+            <section class="history-section">
+                <h2>স্ক্যানিং হিস্টরি</h2>
+                <ul id="history-list">
+                    <li class="empty-history">কোনো স্ক্যান করা নাম্বার নেই</li>
+                </ul>
+            </section>
+        </div>
+        
+        <footer>
+            <p>স্ক্যানার অ্যাপ্লিকেশন &copy; ২০২৩</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scanBtn = document.getElementById('scan-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const cameraPreview = document.getElementById('camera-preview');
+            const scannedNumberInput = document.getElementById('scanned-number');
+            const historyList = document.getElementById('history-list');
+            const cameraPlaceholder = document.querySelector('.camera-placeholder');
+            
+            let stream = null;
+            let isScanning = false;
+            
+            // স্ক্যান বাটনে ক্লিক ইভেন্ট
+            scanBtn.addEventListener('click', function() {
+                if (!isScanning) {
+                    startCamera();
+                } else {
+                    stopCamera();
+                }
+            });
+            
+            // কপি বাটনে ক্লিক ইভেন্ট
+            copyBtn.addEventListener('click', function() {
+                if (scannedNumberInput.value) {
+                    navigator.clipboard.writeText(scannedNumberInput.value)
+                        .then(() => {
+                            alert('নাম্বার কপি করা হয়েছে: ' + scannedNumberInput.value);
+                        })
+                        .catch(err => {
+                            console.error('কপি করতে সমস্যা হয়েছে: ', err);
+                        });
+                } else {
+                    alert('কপি করার জন্য কোনো নাম্বার নেই!');
+                }
+            });
+            
+            // ক্যামেরা শুরু করা
+            function startCamera() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                        .then(function(mediaStream) {
+                            stream = mediaStream;
+                            cameraPreview.srcObject = stream;
+                            cameraPreview.style.display = 'block';
+                            cameraPlaceholder.style.display = 'none';
+                            scanBtn.textContent = 'স্ক্যান বন্ধ করুন';
+                            isScanning = true;
+                            
+                            // স্ক্যানিং শুরু (এখানে আমরা একটি সিমুলেশন ব্যবহার করছি)
+                            setTimeout(simulateScanning, 2000);
+                        })
+                        .catch(function(error) {
+                            console.error('ক্যামেরা এক্সেস করতে সমস্যা: ', error);
+                            alert('ক্যামেরা এক্সেস করতে সমস্যা হচ্ছে। দয়া করে ব্রাউজার পারমিশন চেক করুন।');
+                        });
+                } else {
+                    alert('আপনার ডিভাইস ক্যামেরা সাপোর্ট করে না।');
+                }
+            }
+            
+            // ক্যামেরা বন্ধ করা
+            function stopCamera() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    cameraPreview.style.display = 'none';
+                    cameraPlaceholder.style.display = 'flex';
+                    scanBtn.textContent = 'স্ক্যান করুন';
+                    isScanning = false;
+                }
+            }
+            
+            // স্ক্যানিং সিমুলেশন (বাস্তব অ্যাপে OCR লাইব্রেরি ব্যবহার করা হবে)
+            function simulateScanning() {
+                if (!isScanning) return;
+                
+                // এলোমেলো ১২-ডিজিটের নাম্বার জেনারেট করা
+                const randomNumber = generateRandomNumber(12);
+                scannedNumberInput.value = randomNumber;
+                
+                // হিস্টরিতে যোগ করা
+                addToHistory(randomNumber);
+                
+                // স্ক্যানিং চালিয়ে যাওয়া (বাস্তব অ্যাপে এটি কন্টিনিউয়াস স্ক্যানিং হবে)
+                setTimeout(simulateScanning, 3000);
+            }
+            
+            // এলোমেলো নাম্বার জেনারেটর
+            function generateRandomNumber(length) {
+                let result = '';
+                for (let i = 0; i < length; i++) {
+                    result += Math.floor(Math.random() * 10);
+                }
+                return result;
+            }
+            
+            // হিস্টরিতে আইটেম যোগ করা
+            function addToHistory(number) {
+                // খালি হিস্টরি মেসেজ সরানো
+                const emptyMsg = historyList.querySelector('.empty-history');
+                if (emptyMsg) {
+                    emptyMsg.remove();
+                }
+                
+                // নতুন হিস্টরি আইটেম তৈরি করা
+                const historyItem = document.createElement('li');
+                historyItem.className = 'history-item';
+                
+                const currentDate = new Date();
+                const dateString = currentDate.toLocaleDateString('bn-BD') + ' ' + 
+                                  currentDate.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+                
+                historyItem.innerHTML = `
+                    <span class="history-number">${number}</span>
+                    <span class="history-date">${dateString}</span>
+                `;
+                
+                // নতুন আইটেমকে প্রথমে যোগ করা
+                historyList.insertBefore(historyItem, historyList.firstChild);
+                
+                // সর্বোচ্চ ১০টি আইটেম রাখা
+                if (historyList.children.length > 10) {
+                    historyList.removeChild(historyList.lastChild);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
