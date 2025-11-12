@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>স্ক্যানার অ্যাপ</title>
+    <title>মোবাইল নাম্বার স্ক্যানার</title>
     <style>
         * {
             margin: 0;
@@ -71,12 +71,12 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: none;
         }
         
         .camera-placeholder {
             text-align: center;
             color: #666;
+            display: none;
         }
         
         .camera-placeholder i {
@@ -146,6 +146,7 @@
             border-radius: 8px;
             margin-bottom: 10px;
             background-color: white;
+            text-align: center;
         }
         
         .history-section h2 {
@@ -157,7 +158,7 @@
         
         #history-list {
             list-style-type: none;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
         }
         
@@ -172,13 +173,37 @@
             border-left: 4px solid #6a11cb;
         }
         
+        .history-info {
+            flex-grow: 1;
+        }
+        
         .history-number {
             font-weight: bold;
+            font-size: 1.1rem;
         }
         
         .history-date {
             font-size: 0.8rem;
             color: #666;
+        }
+        
+        .history-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .copy-history-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .copy-history-btn:hover {
+            background-color: #45a049;
         }
         
         .empty-history {
@@ -196,6 +221,44 @@
             border-top: 1px solid #eee;
         }
         
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .scanning-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            display: none;
+            z-index: 10;
+        }
+        
+        .scanning-animation {
+            width: 200px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #2575fc, transparent);
+            animation: scanning 2s infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes scanning {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
         @media (max-width: 600px) {
             .controls {
                 flex-direction: column;
@@ -204,20 +267,37 @@
             .camera-container {
                 height: 250px;
             }
+            
+            .history-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .history-actions {
+                margin-top: 10px;
+                width: 100%;
+                justify-content: flex-end;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>স্ক্যানার অ্যাপ্লিকেশন</h1>
-            <p class="app-description">ক্যামেরা দিয়ে নাম্বার স্ক্যান করুন এবং স্বয়ংক্রিয়ভাবে কপি করুন</p>
+            <h1>মোবাইল নাম্বার স্ক্যানার</h1>
+            <p class="app-description">ক্যামেরা দিয়ে মোবাইল নাম্বার স্ক্যান করুন এবং স্বয়ংক্রিয়ভাবে কপি করুন</p>
         </header>
         
         <div class="main-content">
+            <div class="error-message" id="error-message"></div>
+            
             <section class="scanner-section">
                 <div class="camera-container">
                     <video id="camera-preview" autoplay playsinline></video>
+                    <div class="scanning-overlay" id="scanning-overlay">
+                        <div class="scanning-animation"></div>
+                        <p>স্ক্যানিং চলছে...</p>
+                    </div>
                     <div class="camera-placeholder">
                         <i>📷</i>
                         <p>ক্যামেরা প্রস্তুত</p>
@@ -232,8 +312,9 @@
             
             <section class="result-section">
                 <div class="result-box">
-                    <h3>স্ক্যানকৃত নাম্বার</h3>
-                    <input type="text" id="scanned-number" placeholder="এখানে স্ক্যানকৃত নাম্বার দেখানো হবে" readonly>
+                    <h3>স্ক্যানকৃত মোবাইল নাম্বার</h3>
+                    <input type="text" id="scanned-number" placeholder="এখানে স্ক্যানকৃত মোবাইল নাম্বার দেখানো হবে" readonly>
+                    <p><small>স্ক্যান করতে "স্ক্যান করুন" বাটনে ক্লিক করুন</small></p>
                 </div>
             </section>
             
@@ -246,7 +327,7 @@
         </div>
         
         <footer>
-            <p>স্ক্যানার অ্যাপ্লিকেশন &copy; ২০২৩</p>
+            <p>মোবাইল নাম্বার স্ক্যানার অ্যাপ্লিকেশন &copy; ২০২৩</p>
         </footer>
     </div>
 
@@ -258,29 +339,30 @@
             const scannedNumberInput = document.getElementById('scanned-number');
             const historyList = document.getElementById('history-list');
             const cameraPlaceholder = document.querySelector('.camera-placeholder');
+            const errorMessage = document.getElementById('error-message');
+            const scanningOverlay = document.getElementById('scanning-overlay');
             
             let stream = null;
             let isScanning = false;
             
+            // পেজ লোড হওয়ার সাথে সাথে ক্যামেরা চালু করা
+            window.addEventListener('load', function() {
+                startCamera();
+            });
+            
             // স্ক্যান বাটনে ক্লিক ইভেন্ট
             scanBtn.addEventListener('click', function() {
-                if (!isScanning) {
-                    startCamera();
+                if (isScanning) {
+                    simulateScanning();
                 } else {
-                    stopCamera();
+                    alert('ক্যামেরা প্রস্তুত হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন...');
                 }
             });
             
             // কপি বাটনে ক্লিক ইভেন্ট
             copyBtn.addEventListener('click', function() {
                 if (scannedNumberInput.value) {
-                    navigator.clipboard.writeText(scannedNumberInput.value)
-                        .then(() => {
-                            alert('নাম্বার কপি করা হয়েছে: ' + scannedNumberInput.value);
-                        })
-                        .catch(err => {
-                            console.error('কপি করতে সমস্যা হয়েছে: ', err);
-                        });
+                    copyToClipboard(scannedNumberInput.value);
                 } else {
                     alert('কপি করার জন্য কোনো নাম্বার নেই!');
                 }
@@ -289,60 +371,81 @@
             // ক্যামেরা শুরু করা
             function startCamera() {
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-                        .then(function(mediaStream) {
-                            stream = mediaStream;
-                            cameraPreview.srcObject = stream;
-                            cameraPreview.style.display = 'block';
-                            cameraPlaceholder.style.display = 'none';
-                            scanBtn.textContent = 'স্ক্যান বন্ধ করুন';
-                            isScanning = true;
-                            
-                            // স্ক্যানিং শুরু (এখানে আমরা একটি সিমুলেশন ব্যবহার করছি)
-                            setTimeout(simulateScanning, 2000);
-                        })
-                        .catch(function(error) {
-                            console.error('ক্যামেরা এক্সেস করতে সমস্যা: ', error);
-                            alert('ক্যামেরা এক্সেস করতে সমস্যা হচ্ছে। দয়া করে ব্রাউজার পারমিশন চেক করুন।');
-                        });
+                    navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        } 
+                    })
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        cameraPreview.srcObject = stream;
+                        cameraPreview.style.display = 'block';
+                        cameraPlaceholder.style.display = 'none';
+                        isScanning = true;
+                        hideError();
+                    })
+                    .catch(function(error) {
+                        console.error('ক্যামেরা এক্সেস করতে সমস্যা: ', error);
+                        showError('ক্যামেরা এক্সেস করতে সমস্যা হচ্ছে। দয়া করে ব্রাউজার পারমিশন চেক করুন অথবা HTTPS কানেকশন নিশ্চিত করুন।');
+                        
+                        // সিমুলেশন মোডে চালু করুন
+                        startSimulationMode();
+                    });
                 } else {
-                    alert('আপনার ডিভাইস ক্যামেরা সাপোর্ট করে না।');
+                    showError('আপনার ব্রাউজার ক্যামেরা সাপোর্ট করে না। সিমুলেশন মোড চালু হচ্ছে।');
+                    startSimulationMode();
                 }
             }
             
-            // ক্যামেরা বন্ধ করা
-            function stopCamera() {
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                    cameraPreview.style.display = 'none';
-                    cameraPlaceholder.style.display = 'flex';
-                    scanBtn.textContent = 'স্ক্যান করুন';
-                    isScanning = false;
-                }
+            // সিমুলেশন মোড শুরু করা (যখন ক্যামেরা কাজ না করে)
+            function startSimulationMode() {
+                isScanning = true;
+                cameraPlaceholder.innerHTML = '<i>📱</i><p>সিমুলেশন মোড - ক্যামেরা কাজ করছে না</p>';
+                cameraPlaceholder.style.display = 'flex';
             }
             
-            // স্ক্যানিং সিমুলেশন (বাস্তব অ্যাপে OCR লাইব্রেরি ব্যবহার করা হবে)
+            // স্ক্যানিং সিমুলেশন
             function simulateScanning() {
                 if (!isScanning) return;
                 
-                // এলোমেলো ১২-ডিজিটের নাম্বার জেনারেট করা
-                const randomNumber = generateRandomNumber(12);
-                scannedNumberInput.value = randomNumber;
+                // স্ক্যানিং অ্যানিমেশন দেখানো
+                scanningOverlay.style.display = 'flex';
                 
-                // হিস্টরিতে যোগ করা
-                addToHistory(randomNumber);
-                
-                // স্ক্যানিং চালিয়ে যাওয়া (বাস্তব অ্যাপে এটি কন্টিনিউয়াস স্ক্যানিং হবে)
-                setTimeout(simulateScanning, 3000);
+                // 2 সেকেন্ড পর স্ক্যানিং সম্পূর্ণ হবে
+                setTimeout(function() {
+                    scanningOverlay.style.display = 'none';
+                    
+                    // বাংলাদেশী মোবাইল অপারেটরের নাম্বার জেনারেট করা
+                    const mobileNumber = generateBangladeshiMobileNumber();
+                    scannedNumberInput.value = mobileNumber;
+                    
+                    // হিস্টরিতে যোগ করা
+                    addToHistory(mobileNumber);
+                    
+                    // স্ক্যান সফল হওয়ার মেসেজ
+                    alert('মোবাইল নাম্বার সফলভাবে স্ক্যান হয়েছে: ' + mobileNumber);
+                }, 2000);
             }
             
-            // এলোমেলো নাম্বার জেনারেটর
-            function generateRandomNumber(length) {
-                let result = '';
-                for (let i = 0; i < length; i++) {
-                    result += Math.floor(Math.random() * 10);
+            // বাংলাদেশী মোবাইল নাম্বার জেনারেটর
+            function generateBangladeshiMobileNumber() {
+                // বাংলাদেশী মোবাইল অপারেটর কোড
+                const operators = [
+                    '017', '018', '019', '016', '015', '013'
+                ];
+                
+                // এলোমেলোভাবে একটি অপারেটর সিলেক্ট করা
+                const operator = operators[Math.floor(Math.random() * operators.length)];
+                
+                // বাকি ৮ ডিজিট জেনারেট করা
+                let restDigits = '';
+                for (let i = 0; i < 8; i++) {
+                    restDigits += Math.floor(Math.random() * 10);
                 }
-                return result;
+                
+                return operator + restDigits;
             }
             
             // হিস্টরিতে আইটেম যোগ করা
@@ -362,17 +465,83 @@
                                   currentDate.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
                 
                 historyItem.innerHTML = `
-                    <span class="history-number">${number}</span>
-                    <span class="history-date">${dateString}</span>
+                    <div class="history-info">
+                        <div class="history-number">${number}</div>
+                        <div class="history-date">${dateString}</div>
+                    </div>
+                    <div class="history-actions">
+                        <button class="copy-history-btn" data-number="${number}">কপি</button>
+                    </div>
                 `;
                 
                 // নতুন আইটেমকে প্রথমে যোগ করা
                 historyList.insertBefore(historyItem, historyList.firstChild);
                 
+                // হিস্টরি কপি বাটনে ইভেন্ট লিসেনার যোগ করা
+                const copyHistoryBtn = historyItem.querySelector('.copy-history-btn');
+                copyHistoryBtn.addEventListener('click', function() {
+                    const numberToCopy = this.getAttribute('data-number');
+                    copyToClipboard(numberToCopy);
+                });
+                
                 // সর্বোচ্চ ১০টি আইটেম রাখা
                 if (historyList.children.length > 10) {
                     historyList.removeChild(historyList.lastChild);
                 }
+            }
+            
+            // ক্লিপবোর্ডে কপি করার ফাংশন
+            function copyToClipboard(text) {
+                // Fallback for older browsers
+                if (!navigator.clipboard) {
+                    fallbackCopyTextToClipboard(text);
+                    return;
+                }
+                
+                navigator.clipboard.writeText(text)
+                    .then(() => {
+                        alert('নাম্বার কপি করা হয়েছে: ' + text);
+                    })
+                    .catch(err => {
+                        console.error('কপি করতে সমস্যা হয়েছে: ', err);
+                        fallbackCopyTextToClipboard(text);
+                    });
+            }
+            
+            // ত্রুটি বার্তা দেখানো
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+            
+            // ত্রুটি বার্তা লুকানো
+            function hideError() {
+                errorMessage.style.display = 'none';
+            }
+            
+            // পুরনো ব্রাউজারের জন্য কপি ফাংশন
+            function fallbackCopyTextToClipboard(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.opacity = 0;
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        alert('নাম্বার কপি করা হয়েছে: ' + text);
+                    } else {
+                        alert('কপি করতে ব্যর্থ হয়েছে। দয়া করে ম্যানুয়ালি কপি করুন।');
+                    }
+                } catch (err) {
+                    console.error('কপি করতে সমস্যা: ', err);
+                    alert('কপি করতে ব্যর্থ হয়েছে। দয়া করে ম্যানুয়ালি কপি করুন: ' + text);
+                }
+                
+                document.body.removeChild(textArea);
             }
         });
     </script>
