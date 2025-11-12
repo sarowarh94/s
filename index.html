@@ -73,6 +73,13 @@
             object-fit: cover;
         }
         
+        #captured-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        
         .camera-placeholder {
             text-align: center;
             color: #666;
@@ -112,6 +119,17 @@
             transform: translateY(-2px);
         }
         
+        #capture-btn {
+            background-color: #ff9800;
+            color: white;
+            display: none;
+        }
+        
+        #capture-btn:hover {
+            background-color: #e68900;
+            transform: translateY(-2px);
+        }
+        
         #copy-btn {
             background-color: #6a11cb;
             color: white;
@@ -147,6 +165,39 @@
             margin-bottom: 10px;
             background-color: white;
             text-align: center;
+        }
+        
+        .manual-input {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .manual-input h4 {
+            margin-bottom: 10px;
+            color: #2575fc;
+        }
+        
+        #manual-number {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        #confirm-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            width: 100%;
+        }
+        
+        #confirm-btn:hover {
+            background-color: #45a049;
         }
         
         .history-section h2 {
@@ -294,6 +345,8 @@
             <section class="scanner-section">
                 <div class="camera-container">
                     <video id="camera-preview" autoplay playsinline></video>
+                    <canvas id="capture-canvas" style="display: none;"></canvas>
+                    <img id="captured-image" alt="ক্যাপচার করা ছবি">
                     <div class="scanning-overlay" id="scanning-overlay">
                         <div class="scanning-animation"></div>
                         <p>স্ক্যানিং চলছে...</p>
@@ -306,6 +359,7 @@
                 
                 <div class="controls">
                     <button id="scan-btn">স্ক্যান করুন</button>
+                    <button id="capture-btn">ইমেজ ক্যাপচার করুন</button>
                     <button id="copy-btn">নাম্বার কপি করুন</button>
                 </div>
             </section>
@@ -315,6 +369,12 @@
                     <h3>স্ক্যানকৃত মোবাইল নাম্বার</h3>
                     <input type="text" id="scanned-number" placeholder="এখানে স্ক্যানকৃত মোবাইল নাম্বার দেখানো হবে" readonly>
                     <p><small>স্ক্যান করতে "স্ক্যান করুন" বাটনে ক্লিক করুন</small></p>
+                </div>
+                
+                <div class="manual-input" id="manual-input">
+                    <h4>স্ক্যানিং সমস্যা? ম্যানুয়ালি নাম্বার লিখুন</h4>
+                    <input type="text" id="manual-number" placeholder="মোবাইল নাম্বার লিখুন (উদা: 01712345678)" maxlength="11">
+                    <button id="confirm-btn">নিশ্চিত করুন</button>
                 </div>
             </section>
             
@@ -334,16 +394,23 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const scanBtn = document.getElementById('scan-btn');
+            const captureBtn = document.getElementById('capture-btn');
             const copyBtn = document.getElementById('copy-btn');
+            const confirmBtn = document.getElementById('confirm-btn');
             const cameraPreview = document.getElementById('camera-preview');
+            const capturedImage = document.getElementById('captured-image');
+            const captureCanvas = document.getElementById('capture-canvas');
             const scannedNumberInput = document.getElementById('scanned-number');
             const historyList = document.getElementById('history-list');
             const cameraPlaceholder = document.querySelector('.camera-placeholder');
             const errorMessage = document.getElementById('error-message');
             const scanningOverlay = document.getElementById('scanning-overlay');
+            const manualInput = document.getElementById('manual-input');
+            const manualNumberInput = document.getElementById('manual-number');
             
             let stream = null;
             let isScanning = false;
+            let capturedImageData = null;
             
             // পেজ লোড হওয়ার সাথে সাথে ক্যামেরা চালু করা
             window.addEventListener('load', function() {
@@ -353,10 +420,18 @@
             // স্ক্যান বাটনে ক্লিক ইভেন্ট
             scanBtn.addEventListener('click', function() {
                 if (isScanning) {
-                    simulateScanning();
+                    // ক্যাপচার বাটন দেখানো
+                    captureBtn.style.display = 'block';
+                    scanBtn.textContent = 'আবার স্ক্যান করুন';
+                    alert('ইমেজ ক্যাপচার করতে "ইমেজ ক্যাপচার করুন" বাটনে ক্লিক করুন');
                 } else {
-                    alert('ক্যামেরা প্রস্তুত হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন...');
+                    startCamera();
                 }
+            });
+            
+            // ক্যাপচার বাটনে ক্লিক ইভেন্ট
+            captureBtn.addEventListener('click', function() {
+                captureImage();
             });
             
             // কপি বাটনে ক্লিক ইভেন্ট
@@ -365,6 +440,19 @@
                     copyToClipboard(scannedNumberInput.value);
                 } else {
                     alert('কপি করার জন্য কোনো নাম্বার নেই!');
+                }
+            });
+            
+            // নিশ্চিত বাটনে ক্লিক ইভেন্ট
+            confirmBtn.addEventListener('click', function() {
+                const manualNumber = manualNumberInput.value.trim();
+                if (validateMobileNumber(manualNumber)) {
+                    scannedNumberInput.value = manualNumber;
+                    addToHistory(manualNumber);
+                    manualInput.style.display = 'none';
+                    alert('নাম্বার সফলভাবে সংরক্ষণ করা হয়েছে: ' + manualNumber);
+                } else {
+                    alert('দয়া করে একটি বৈধ ১১-ডিজিটের মোবাইল নাম্বার লিখুন (উদা: 01712345678)');
                 }
             });
             
@@ -382,7 +470,10 @@
                         stream = mediaStream;
                         cameraPreview.srcObject = stream;
                         cameraPreview.style.display = 'block';
+                        capturedImage.style.display = 'none';
                         cameraPlaceholder.style.display = 'none';
+                        captureBtn.style.display = 'none';
+                        scanBtn.textContent = 'স্ক্যান করুন';
                         isScanning = true;
                         hideError();
                     })
@@ -404,37 +495,62 @@
                 isScanning = true;
                 cameraPlaceholder.innerHTML = '<i>📱</i><p>সিমুলেশন মোড - ক্যামেরা কাজ করছে না</p>';
                 cameraPlaceholder.style.display = 'flex';
+                cameraPreview.style.display = 'none';
             }
             
-            // স্ক্যানিং সিমুলেশন
-            function simulateScanning() {
+            // ইমেজ ক্যাপচার করা
+            function captureImage() {
                 if (!isScanning) return;
                 
-                // স্ক্যানিং অ্যানিমেশন দেখানো
+                const context = captureCanvas.getContext('2d');
+                captureCanvas.width = cameraPreview.videoWidth;
+                captureCanvas.height = cameraPreview.videoHeight;
+                context.drawImage(cameraPreview, 0, 0, captureCanvas.width, captureCanvas.height);
+                
+                // ক্যাপচার করা ইমেজ দেখানো
+                capturedImage.src = captureCanvas.toDataURL('image/png');
+                cameraPreview.style.display = 'none';
+                capturedImage.style.display = 'block';
+                
+                // স্ক্যানিং প্রক্রিয়া শুরু
+                processImage();
+            }
+            
+            // ইমেজ প্রসেস করা (OCR সিমুলেশন)
+            function processImage() {
                 scanningOverlay.style.display = 'flex';
                 
-                // 2 সেকেন্ড পর স্ক্যানিং সম্পূর্ণ হবে
+                // 3 সেকেন্ড পর স্ক্যানিং সম্পূর্ণ হবে
                 setTimeout(function() {
                     scanningOverlay.style.display = 'none';
                     
-                    // বাংলাদেশী মোবাইল অপারেটরের নাম্বার জেনারেট করা
-                    const mobileNumber = generateBangladeshiMobileNumber();
-                    scannedNumberInput.value = mobileNumber;
+                    // OCR সফল হওয়ার সম্ভাবনা 80%
+                    const isSuccess = Math.random() < 0.8;
                     
-                    // হিস্টরিতে যোগ করা
-                    addToHistory(mobileNumber);
-                    
-                    // স্ক্যান সফল হওয়ার মেসেজ
-                    alert('মোবাইল নাম্বার সফলভাবে স্ক্যান হয়েছে: ' + mobileNumber);
-                }, 2000);
+                    if (isSuccess) {
+                        // স্ক্যান সফল - ম্যানুয়াল ইনপুট দেখাবে না
+                        const detectedNumber = generateBangladeshiMobileNumber();
+                        scannedNumberInput.value = detectedNumber;
+                        addToHistory(detectedNumber);
+                        alert('মোবাইল নাম্বার সফলভাবে স্ক্যান হয়েছে: ' + detectedNumber);
+                    } else {
+                        // স্ক্যান ব্যর্থ - ম্যানুয়াল ইনপুট দেখাবে
+                        manualInput.style.display = 'block';
+                        alert('স্ক্যানিং ব্যর্থ হয়েছে। দয়া করে ম্যানুয়ালি নাম্বার লিখুন।');
+                    }
+                }, 3000);
+            }
+            
+            // বাংলাদেশী মোবাইল নাম্বার ভ্যালিডেশন
+            function validateMobileNumber(number) {
+                const mobileRegex = /^01[3-9]\d{8}$/;
+                return mobileRegex.test(number);
             }
             
             // বাংলাদেশী মোবাইল নাম্বার জেনারেটর
             function generateBangladeshiMobileNumber() {
                 // বাংলাদেশী মোবাইল অপারেটর কোড
-                const operators = [
-                    '017', '018', '019', '016', '015', '013'
-                ];
+                const operators = ['013', '014', '015', '016', '017', '018', '019'];
                 
                 // এলোমেলোভাবে একটি অপারেটর সিলেক্ট করা
                 const operator = operators[Math.floor(Math.random() * operators.length)];
