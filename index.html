@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>মোবাইল নাম্বার স্ক্যানার</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'Nirmala UI', sans-serif;
         }
         
         body {
@@ -20,7 +21,7 @@
         }
         
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background-color: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -28,638 +29,662 @@
             overflow: hidden;
         }
         
-        header {
-            background: linear-gradient(to right, #2575fc, #6a11cb);
+        .header {
+            background: linear-gradient(to right, #2196F3, #1976D2);
             color: white;
             padding: 20px;
             text-align: center;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
         }
         
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
         }
         
-        .app-description {
-            font-size: 1rem;
+        .header p {
             opacity: 0.9;
         }
         
-        .main-content {
+        .content {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 15px;
             padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e0e0e0;
         }
         
-        .scanner-section {
-            margin-bottom: 30px;
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #1976D2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .camera-container {
+        .section-title i {
+            font-size: 24px;
+        }
+        
+        .camera-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        #camera-container {
+            position: relative;
             width: 100%;
             height: 300px;
-            background-color: #f5f5f5;
             border-radius: 10px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             overflow: hidden;
-            position: relative;
-            border: 2px dashed #2575fc;
+            background-color: #f5f5f5;
+            border: 2px dashed #2196F3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        #camera-preview {
+        #camera-view, #image-preview {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
         
-        #captured-image {
-            width: 100%;
+        #camera-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: #FF9800;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #F57C00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+        }
+        
+        .btn-success {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #388E3C;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-danger {
+            background-color: #F44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #D32F2F;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+        }
+        
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .result-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        #scanned-number {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 18px;
+            background-color: #f9f9f9;
+        }
+        
+        .history-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .history-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .history-number {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .history-date {
+            font-size: 12px;
+            color: #757575;
+            margin-top: 5px;
+        }
+        
+        .progress-container {
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress {
             height: 100%;
-            object-fit: cover;
+            background: linear-gradient(to right, #2196F3, #1976D2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #757575;
+        }
+        
+        .status-message {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+        
+        .status-success {
+            background-color: #E8F5E9;
+            color: #2E7D32;
+            border: 1px solid #C8E6C9;
+        }
+        
+        .status-error {
+            background-color: #FFEBEE;
+            color: #C62828;
+            border: 1px solid #FFCDD2;
+        }
+        
+        .hidden {
             display: none;
         }
         
         .camera-placeholder {
             text-align: center;
-            color: #666;
-            display: none;
+            color: #757575;
+            padding: 20px;
         }
         
         .camera-placeholder i {
-            font-size: 60px;
+            font-size: 50px;
             margin-bottom: 15px;
-            color: #2575fc;
+            color: #2196F3;
         }
         
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-        
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        #scan-btn {
-            background-color: #2575fc;
-            color: white;
-        }
-        
-        #scan-btn:hover {
-            background-color: #1a68e8;
-            transform: translateY(-2px);
-        }
-        
-        #capture-btn {
-            background-color: #ff9800;
-            color: white;
-            display: none;
-        }
-        
-        #capture-btn:hover {
-            background-color: #e68900;
-            transform: translateY(-2px);
-        }
-        
-        #copy-btn {
-            background-color: #6a11cb;
-            color: white;
-        }
-        
-        #copy-btn:hover {
-            background-color: #5a0db3;
-            transform: translateY(-2px);
-        }
-        
-        .result-section {
-            margin-bottom: 30px;
-        }
-        
-        .result-box {
-            background-color: #f9f9f9;
-            border-radius: 10px;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .result-box h3 {
-            margin-bottom: 10px;
-            color: #2575fc;
-        }
-        
-        #scanned-number {
-            width: 100%;
-            padding: 12px;
-            font-size: 1.2rem;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            background-color: white;
-            text-align: center;
-        }
-        
-        .manual-input {
-            margin-top: 15px;
-            padding: 15px;
-            background-color: #f0f0f0;
-            border-radius: 8px;
-            display: none;
-        }
-        
-        .manual-input h4 {
-            margin-bottom: 10px;
-            color: #2575fc;
-        }
-        
-        #manual-number {
-            width: 100%;
-            padding: 10px;
-            font-size: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        
-        #confirm-btn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px;
-            width: 100%;
-        }
-        
-        #confirm-btn:hover {
-            background-color: #45a049;
-        }
-        
-        .history-section h2 {
-            margin-bottom: 15px;
-            color: #2575fc;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 8px;
-        }
-        
-        #history-list {
-            list-style-type: none;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .history-item {
-            padding: 12px;
-            background-color: #f5f5f5;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid #6a11cb;
-        }
-        
-        .history-info {
-            flex-grow: 1;
-        }
-        
-        .history-number {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        
-        .history-date {
-            font-size: 0.8rem;
-            color: #666;
-        }
-        
-        .history-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .copy-history-btn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
-        .copy-history-btn:hover {
-            background-color: #45a049;
-        }
-        
-        .empty-history {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-style: italic;
-        }
-        
-        footer {
-            text-align: center;
-            padding: 15px;
-            color: #666;
-            font-size: 0.9rem;
-            border-top: 1px solid #eee;
-        }
-        
-        .error-message {
-            background-color: #ffebee;
-            color: #c62828;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        
-        .scanning-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: white;
-            display: none;
-            z-index: 10;
-        }
-        
-        .scanning-animation {
-            width: 200px;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #2575fc, transparent);
-            animation: scanning 2s infinite;
-            margin-bottom: 15px;
-        }
-        
-        @keyframes scanning {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        @media (max-width: 600px) {
-            .controls {
-                flex-direction: column;
+        @media (max-width: 768px) {
+            .content {
+                padding: 15px;
             }
             
-            .camera-container {
+            .btn {
+                flex: 1;
+                min-width: 150px;
+            }
+            
+            #camera-container {
                 height: 250px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .section-title {
+                font-size: 18px;
+            }
+            
+            .btn {
+                padding: 10px 15px;
+                font-size: 14px;
             }
             
             .history-item {
                 flex-direction: column;
                 align-items: flex-start;
-            }
-            
-            .history-actions {
-                margin-top: 10px;
-                width: 100%;
-                justify-content: flex-end;
+                gap: 10px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
+        <div class="header">
             <h1>মোবাইল নাম্বার স্ক্যানার</h1>
-            <p class="app-description">ক্যামেরা দিয়ে মোবাইল নাম্বার স্ক্যান করুন এবং স্বয়ংক্রিয়ভাবে কপি করুন</p>
-        </header>
-        
-        <div class="main-content">
-            <div class="error-message" id="error-message"></div>
-            
-            <section class="scanner-section">
-                <div class="camera-container">
-                    <video id="camera-preview" autoplay playsinline></video>
-                    <canvas id="capture-canvas" style="display: none;"></canvas>
-                    <img id="captured-image" alt="ক্যাপচার করা ছবি">
-                    <div class="scanning-overlay" id="scanning-overlay">
-                        <div class="scanning-animation"></div>
-                        <p>স্ক্যানিং চলছে...</p>
-                    </div>
-                    <div class="camera-placeholder">
-                        <i>📷</i>
-                        <p>ক্যামেরা প্রস্তুত</p>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button id="scan-btn">স্ক্যান করুন</button>
-                    <button id="capture-btn">ইমেজ ক্যাপচার করুন</button>
-                    <button id="copy-btn">নাম্বার কপি করুন</button>
-                </div>
-            </section>
-            
-            <section class="result-section">
-                <div class="result-box">
-                    <h3>স্ক্যানকৃত মোবাইল নাম্বার</h3>
-                    <input type="text" id="scanned-number" placeholder="এখানে স্ক্যানকৃত মোবাইল নাম্বার দেখানো হবে" readonly>
-                    <p><small>স্ক্যান করতে "স্ক্যান করুন" বাটনে ক্লিক করুন</small></p>
-                </div>
-                
-                <div class="manual-input" id="manual-input">
-                    <h4>স্ক্যানিং সমস্যা? ম্যানুয়ালি নাম্বার লিখুন</h4>
-                    <input type="text" id="manual-number" placeholder="মোবাইল নাম্বার লিখুন (উদা: 01712345678)" maxlength="11">
-                    <button id="confirm-btn">নিশ্চিত করুন</button>
-                </div>
-            </section>
-            
-            <section class="history-section">
-                <h2>স্ক্যানিং হিস্টরি</h2>
-                <ul id="history-list">
-                    <li class="empty-history">কোনো স্ক্যান করা নাম্বার নেই</li>
-                </ul>
-            </section>
+            <p>ইমেজ থেকে মোবাইল নাম্বার স্ক্যান করুন সহজেই</p>
         </div>
         
-        <footer>
-            <p>মোবাইল নাম্বার স্ক্যানার অ্যাপ্লিকেশন &copy; ২০২৩</p>
-        </footer>
+        <div class="content">
+            <div class="section camera-section">
+                <h2 class="section-title">
+                    <i>📷</i> ক্যামেরা
+                </h2>
+                <div id="camera-container">
+                    <div class="camera-placeholder" id="camera-placeholder">
+                        <i>📷</i>
+                        <p>ক্যামেরা এক্সেস করার অনুমতি দিন</p>
+                    </div>
+                    <video id="camera-view" autoplay playsinline class="hidden"></video>
+                    <canvas id="canvas" class="hidden"></canvas>
+                    <img id="image-preview" class="hidden" alt="প্রিভিউ">
+                </div>
+                
+                <div class="progress-container" id="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress" id="progress-bar"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text">স্ক্যান প্রস্তুত...</div>
+                </div>
+                
+                <div id="status-message" class="status-message"></div>
+                
+                <div id="camera-controls">
+                    <button id="start-camera" class="btn btn-primary">
+                        <i>▶️</i> ক্যামেরা চালু করুন
+                    </button>
+                    <button id="capture-btn" class="btn btn-secondary" disabled>
+                        <i>📸</i> স্ক্যান করুন
+                    </button>
+                    <button id="upload-btn" class="btn btn-success">
+                        <i>🖼️</i> গ্যালারি থেকে নির্বাচন করুন
+                    </button>
+                    <button id="reset-btn" class="btn btn-danger" disabled>
+                        <i>🔄</i> রিসেট করুন
+                    </button>
+                </div>
+            </div>
+            
+            <div class="section result-container">
+                <h2 class="section-title">
+                    <i>🔍</i> স্ক্যান করা নাম্বার
+                </h2>
+                <div class="result-box">
+                    <input type="text" id="scanned-number" placeholder="এখানে স্ক্যান করা নাম্বার দেখানো হবে" readonly>
+                    <button id="copy-btn" class="btn btn-primary" disabled>
+                        <i>📋</i> কপি করুন
+                    </button>
+                </div>
+            </div>
+            
+            <div class="section history-container">
+                <div class="history-header">
+                    <h2 class="section-title">
+                        <i>📜</i> স্ক্যান হিস্টোরি
+                    </h2>
+                    <button id="clear-history" class="btn btn-danger">
+                        <i>🗑️</i> ক্লিয়ার করুন
+                    </button>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- হিস্টোরি আইটেমগুলি এখানে যোগ হবে -->
+                </div>
+            </div>
+        </div>
     </div>
 
+    <input type="file" id="file-input" accept="image/*" class="hidden">
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const scanBtn = document.getElementById('scan-btn');
-            const captureBtn = document.getElementById('capture-btn');
-            const copyBtn = document.getElementById('copy-btn');
-            const confirmBtn = document.getElementById('confirm-btn');
-            const cameraPreview = document.getElementById('camera-preview');
-            const capturedImage = document.getElementById('captured-image');
-            const captureCanvas = document.getElementById('capture-canvas');
-            const scannedNumberInput = document.getElementById('scanned-number');
-            const historyList = document.getElementById('history-list');
-            const cameraPlaceholder = document.querySelector('.camera-placeholder');
-            const errorMessage = document.getElementById('error-message');
-            const scanningOverlay = document.getElementById('scanning-overlay');
-            const manualInput = document.getElementById('manual-input');
-            const manualNumberInput = document.getElementById('manual-number');
+        // DOM elements
+        const cameraView = document.getElementById('camera-view');
+        const canvas = document.getElementById('canvas');
+        const imagePreview = document.getElementById('image-preview');
+        const cameraPlaceholder = document.getElementById('camera-placeholder');
+        const startCameraBtn = document.getElementById('start-camera');
+        const captureBtn = document.getElementById('capture-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const fileInput = document.getElementById('file-input');
+        const scannedNumberInput = document.getElementById('scanned-number');
+        const copyBtn = document.getElementById('copy-btn');
+        const historyList = document.getElementById('history-list');
+        const clearHistoryBtn = document.getElementById('clear-history');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const statusMessage = document.getElementById('status-message');
+
+        // Global variables
+        let stream = null;
+        let scanHistory = JSON.parse(localStorage.getItem('scanHistory')) || [];
+
+        // Initialize the app
+        function init() {
+            renderHistory();
+            updateButtons();
             
-            let stream = null;
-            let isScanning = false;
-            let capturedImageData = null;
-            
-            // পেজ লোড হওয়ার সাথে সাথে ক্যামেরা চালু করা
-            window.addEventListener('load', function() {
-                startCamera();
-            });
-            
-            // স্ক্যান বাটনে ক্লিক ইভেন্ট
-            scanBtn.addEventListener('click', function() {
-                if (isScanning) {
-                    // ক্যাপচার বাটন দেখানো
-                    captureBtn.style.display = 'block';
-                    scanBtn.textContent = 'আবার স্ক্যান করুন';
-                    alert('ইমেজ ক্যাপচার করতে "ইমেজ ক্যাপচার করুন" বাটনে ক্লিক করুন');
-                } else {
-                    startCamera();
-                }
-            });
-            
-            // ক্যাপচার বাটনে ক্লিক ইভেন্ট
-            captureBtn.addEventListener('click', function() {
-                captureImage();
-            });
-            
-            // কপি বাটনে ক্লিক ইভেন্ট
-            copyBtn.addEventListener('click', function() {
-                if (scannedNumberInput.value) {
-                    copyToClipboard(scannedNumberInput.value);
-                } else {
-                    alert('কপি করার জন্য কোনো নাম্বার নেই!');
-                }
-            });
-            
-            // নিশ্চিত বাটনে ক্লিক ইভেন্ট
-            confirmBtn.addEventListener('click', function() {
-                const manualNumber = manualNumberInput.value.trim();
-                if (validateMobileNumber(manualNumber)) {
-                    scannedNumberInput.value = manualNumber;
-                    addToHistory(manualNumber);
-                    manualInput.style.display = 'none';
-                    alert('নাম্বার সফলভাবে সংরক্ষণ করা হয়েছে: ' + manualNumber);
-                } else {
-                    alert('দয়া করে একটি বৈধ ১১-ডিজিটের মোবাইল নাম্বার লিখুন (উদা: 01712345678)');
-                }
-            });
-            
-            // ক্যামেরা শুরু করা
-            function startCamera() {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        } 
-                    })
-                    .then(function(mediaStream) {
-                        stream = mediaStream;
-                        cameraPreview.srcObject = stream;
-                        cameraPreview.style.display = 'block';
-                        capturedImage.style.display = 'none';
-                        cameraPlaceholder.style.display = 'none';
-                        captureBtn.style.display = 'none';
-                        scanBtn.textContent = 'স্ক্যান করুন';
-                        isScanning = true;
-                        hideError();
-                    })
-                    .catch(function(error) {
-                        console.error('ক্যামেরা এক্সেস করতে সমস্যা: ', error);
-                        showError('ক্যামেরা এক্সেস করতে সমস্যা হচ্ছে। দয়া করে ব্রাউজার পারমিশন চেক করুন অথবা HTTPS কানেকশন নিশ্চিত করুন।');
-                        
-                        // সিমুলেশন মোডে চালু করুন
-                        startSimulationMode();
-                    });
-                } else {
-                    showError('আপনার ব্রাউজার ক্যামেরা সাপোর্ট করে না। সিমুলেশন মোড চালু হচ্ছে।');
-                    startSimulationMode();
-                }
-            }
-            
-            // সিমুলেশন মোড শুরু করা (যখন ক্যামেরা কাজ না করে)
-            function startSimulationMode() {
-                isScanning = true;
-                cameraPlaceholder.innerHTML = '<i>📱</i><p>সিমুলেশন মোড - ক্যামেরা কাজ করছে না</p>';
-                cameraPlaceholder.style.display = 'flex';
-                cameraPreview.style.display = 'none';
-            }
-            
-            // ইমেজ ক্যাপচার করা
-            function captureImage() {
-                if (!isScanning) return;
+            // Event listeners
+            startCameraBtn.addEventListener('click', startCamera);
+            captureBtn.addEventListener('click', captureImage);
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            resetBtn.addEventListener('click', resetScanner);
+            copyBtn.addEventListener('click', copyToClipboard);
+            clearHistoryBtn.addEventListener('click', clearHistory);
+            fileInput.addEventListener('change', handleImageUpload);
+        }
+
+        // Start camera function
+        async function startCamera() {
+            try {
+                showStatus('ক্যামেরা চালু করা হচ্ছে...', 'status-success');
                 
-                const context = captureCanvas.getContext('2d');
-                captureCanvas.width = cameraPreview.videoWidth;
-                captureCanvas.height = cameraPreview.videoHeight;
-                context.drawImage(cameraPreview, 0, 0, captureCanvas.width, captureCanvas.height);
-                
-                // ক্যাপচার করা ইমেজ দেখানো
-                capturedImage.src = captureCanvas.toDataURL('image/png');
-                cameraPreview.style.display = 'none';
-                capturedImage.style.display = 'block';
-                
-                // স্ক্যানিং প্রক্রিয়া শুরু
-                processImage();
-            }
-            
-            // ইমেজ প্রসেস করা (OCR সিমুলেশন)
-            function processImage() {
-                scanningOverlay.style.display = 'flex';
-                
-                // 3 সেকেন্ড পর স্ক্যানিং সম্পূর্ণ হবে
-                setTimeout(function() {
-                    scanningOverlay.style.display = 'none';
-                    
-                    // OCR সফল হওয়ার সম্ভাবনা 80%
-                    const isSuccess = Math.random() < 0.8;
-                    
-                    if (isSuccess) {
-                        // স্ক্যান সফল - ম্যানুয়াল ইনপুট দেখাবে না
-                        const detectedNumber = generateBangladeshiMobileNumber();
-                        scannedNumberInput.value = detectedNumber;
-                        addToHistory(detectedNumber);
-                        alert('মোবাইল নাম্বার সফলভাবে স্ক্যান হয়েছে: ' + detectedNumber);
-                    } else {
-                        // স্ক্যান ব্যর্থ - ম্যানুয়াল ইনপুট দেখাবে
-                        manualInput.style.display = 'block';
-                        alert('স্ক্যানিং ব্যর্থ হয়েছে। দয়া করে ম্যানুয়ালি নাম্বার লিখুন।');
-                    }
-                }, 3000);
-            }
-            
-            // বাংলাদেশী মোবাইল নাম্বার ভ্যালিডেশন
-            function validateMobileNumber(number) {
-                const mobileRegex = /^01[3-9]\d{8}$/;
-                return mobileRegex.test(number);
-            }
-            
-            // বাংলাদেশী মোবাইল নাম্বার জেনারেটর
-            function generateBangladeshiMobileNumber() {
-                // বাংলাদেশী মোবাইল অপারেটর কোড
-                const operators = ['013', '014', '015', '016', '017', '018', '019'];
-                
-                // এলোমেলোভাবে একটি অপারেটর সিলেক্ট করা
-                const operator = operators[Math.floor(Math.random() * operators.length)];
-                
-                // বাকি ৮ ডিজিট জেনারেট করা
-                let restDigits = '';
-                for (let i = 0; i < 8; i++) {
-                    restDigits += Math.floor(Math.random() * 10);
-                }
-                
-                return operator + restDigits;
-            }
-            
-            // হিস্টরিতে আইটেম যোগ করা
-            function addToHistory(number) {
-                // খালি হিস্টরি মেসেজ সরানো
-                const emptyMsg = historyList.querySelector('.empty-history');
-                if (emptyMsg) {
-                    emptyMsg.remove();
-                }
-                
-                // নতুন হিস্টরি আইটেম তৈরি করা
-                const historyItem = document.createElement('li');
-                historyItem.className = 'history-item';
-                
-                const currentDate = new Date();
-                const dateString = currentDate.toLocaleDateString('bn-BD') + ' ' + 
-                                  currentDate.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
-                
-                historyItem.innerHTML = `
-                    <div class="history-info">
-                        <div class="history-number">${number}</div>
-                        <div class="history-date">${dateString}</div>
-                    </div>
-                    <div class="history-actions">
-                        <button class="copy-history-btn" data-number="${number}">কপি</button>
-                    </div>
-                `;
-                
-                // নতুন আইটেমকে প্রথমে যোগ করা
-                historyList.insertBefore(historyItem, historyList.firstChild);
-                
-                // হিস্টরি কপি বাটনে ইভেন্ট লিসেনার যোগ করা
-                const copyHistoryBtn = historyItem.querySelector('.copy-history-btn');
-                copyHistoryBtn.addEventListener('click', function() {
-                    const numberToCopy = this.getAttribute('data-number');
-                    copyToClipboard(numberToCopy);
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
                 });
                 
-                // সর্বোচ্চ ১০টি আইটেম রাখা
-                if (historyList.children.length > 10) {
-                    historyList.removeChild(historyList.lastChild);
-                }
-            }
-            
-            // ক্লিপবোর্ডে কপি করার ফাংশন
-            function copyToClipboard(text) {
-                // Fallback for older browsers
-                if (!navigator.clipboard) {
-                    fallbackCopyTextToClipboard(text);
-                    return;
-                }
+                cameraView.srcObject = stream;
+                cameraView.classList.remove('hidden');
+                cameraPlaceholder.classList.add('hidden');
                 
-                navigator.clipboard.writeText(text)
-                    .then(() => {
-                        alert('নাম্বার কপি করা হয়েছে: ' + text);
-                    })
-                    .catch(err => {
-                        console.error('কপি করতে সমস্যা হয়েছে: ', err);
-                        fallbackCopyTextToClipboard(text);
-                    });
-            }
-            
-            // ত্রুটি বার্তা দেখানো
-            function showError(message) {
-                errorMessage.textContent = message;
-                errorMessage.style.display = 'block';
-            }
-            
-            // ত্রুটি বার্তা লুকানো
-            function hideError() {
-                errorMessage.style.display = 'none';
-            }
-            
-            // পুরনো ব্রাউজারের জন্য কপি ফাংশন
-            function fallbackCopyTextToClipboard(text) {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = "fixed";
-                textArea.style.opacity = 0;
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
+                startCameraBtn.disabled = true;
+                captureBtn.disabled = false;
+                resetBtn.disabled = false;
                 
-                try {
-                    const successful = document.execCommand('copy');
-                    if (successful) {
-                        alert('নাম্বার কপি করা হয়েছে: ' + text);
-                    } else {
-                        alert('কপি করতে ব্যর্থ হয়েছে। দয়া করে ম্যানুয়ালি কপি করুন।');
+                showStatus('ক্যামেরা সফলভাবে চালু হয়েছে', 'status-success');
+            } catch (error) {
+                console.error('ক্যামেরা চালু করতে সমস্যা:', error);
+                showStatus('ক্যামেরা চালু করতে সমস্যা হয়েছে। দয়া করে ব্রাউজার পারমিশন চেক করুন।', 'status-error');
+            }
+        }
+
+        // Capture image from camera
+        function captureImage() {
+            const context = canvas.getContext('2d');
+            canvas.width = cameraView.videoWidth;
+            canvas.height = cameraView.videoHeight;
+            context.drawImage(cameraView, 0, 0, canvas.width, canvas.height);
+            
+            // Convert canvas to image
+            const imageDataURL = canvas.toDataURL('image/jpeg');
+            processImage(imageDataURL);
+        }
+
+        // Handle image upload
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    cameraView.classList.add('hidden');
+                    cameraPlaceholder.classList.add('hidden');
+                    
+                    processImage(e.target.result);
+                };
+                reader.readAsDataURL(file);
+                
+                resetBtn.disabled = false;
+            }
+        }
+
+        // Process image with Tesseract.js
+        async function processImage(imageSrc) {
+            showProgress(0, 'স্ক্যান শুরু হচ্ছে...');
+            progressContainer.style.display = 'block';
+            
+            try {
+                const { data: { text } } = await Tesseract.recognize(
+                    imageSrc,
+                    'eng+ben', // English and Bengali languages
+                    {
+                        logger: progress => {
+                            if (progress.status === 'recognizing text') {
+                                const percent = Math.round(progress.progress * 100);
+                                showProgress(percent, `স্ক্যান করা হচ্ছে: ${percent}%`);
+                            }
+                        }
                     }
-                } catch (err) {
-                    console.error('কপি করতে সমস্যা: ', err);
-                    alert('কপি করতে ব্যর্থ হয়েছে। দয়া করে ম্যানুয়ালি কপি করুন: ' + text);
+                );
+                
+                showProgress(100, 'স্ক্যান সম্পন্ন!');
+                
+                // Extract mobile numbers using regex
+                const mobileRegex = /(\+88)?01[3-9]\d{8}/g;
+                const matches = text.match(mobileRegex);
+                
+                if (matches && matches.length > 0) {
+                    let mobileNumber = matches[0];
+                    
+                    // Remove +88 if present
+                    if (mobileNumber.startsWith('+88')) {
+                        mobileNumber = mobileNumber.substring(3);
+                    }
+                    
+                    scannedNumberInput.value = mobileNumber;
+                    copyBtn.disabled = false;
+                    
+                    // Add to history
+                    addToHistory(mobileNumber);
+                    
+                    showStatus(`মোবাইল নাম্বার সফলভাবে স্ক্যান হয়েছে: ${mobileNumber}`, 'status-success');
+                } else {
+                    scannedNumberInput.value = '';
+                    copyBtn.disabled = true;
+                    showStatus('দুঃখিত! ইমেজে কোন মোবাইল নাম্বার পাওয়া যায়নি।', 'status-error');
                 }
                 
-                document.body.removeChild(textArea);
+            } catch (error) {
+                console.error('স্ক্যান করতে সমস্যা:', error);
+                showStatus('স্ক্যান করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।', 'status-error');
             }
-        });
+            
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+            }, 2000);
+        }
+
+        // Reset scanner
+        function resetScanner() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            cameraView.classList.add('hidden');
+            imagePreview.classList.add('hidden');
+            cameraPlaceholder.classList.remove('hidden');
+            
+            scannedNumberInput.value = '';
+            copyBtn.disabled = true;
+            
+            startCameraBtn.disabled = false;
+            captureBtn.disabled = true;
+            resetBtn.disabled = true;
+            
+            fileInput.value = '';
+            
+            hideStatus();
+        }
+
+        // Copy to clipboard
+        function copyToClipboard() {
+            const number = scannedNumberInput.value;
+            navigator.clipboard.writeText(number).then(() => {
+                showStatus('মোবাইল নাম্বার ক্লিপবোর্ডে কপি হয়েছে!', 'status-success');
+            }).catch(err => {
+                console.error('কপি করতে সমস্যা:', err);
+                showStatus('কপি করতে সমস্যা হয়েছে।', 'status-error');
+            });
+        }
+
+        // Add to history
+        function addToHistory(number) {
+            const historyItem = {
+                id: Date.now(),
+                number: number,
+                date: new Date().toLocaleString('bn-BD')
+            };
+            
+            scanHistory.unshift(historyItem);
+            
+            // Keep only last 20 items
+            if (scanHistory.length > 20) {
+                scanHistory = scanHistory.slice(0, 20);
+            }
+            
+            localStorage.setItem('scanHistory', JSON.stringify(scanHistory));
+            renderHistory();
+        }
+
+        // Render history
+        function renderHistory() {
+            historyList.innerHTML = '';
+            
+            if (scanHistory.length === 0) {
+                historyList.innerHTML = '<p style="text-align: center; padding: 20px; color: #757575;">কোন স্ক্যান হিস্টোরি নেই</p>';
+                return;
+            }
+            
+            scanHistory.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-info">
+                        <div class="history-number">${item.number}</div>
+                        <div class="history-date">${item.date}</div>
+                    </div>
+                    <button class="btn btn-primary history-copy-btn" data-number="${item.number}">
+                        <i>📋</i> কপি
+                    </button>
+                `;
+                
+                historyList.appendChild(historyItem);
+            });
+            
+            // Add event listeners to history copy buttons
+            document.querySelectorAll('.history-copy-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const number = this.getAttribute('data-number');
+                    navigator.clipboard.writeText(number).then(() => {
+                        showStatus('মোবাইল নাম্বার ক্লিপবোর্ডে কপি হয়েছে!', 'status-success');
+                    });
+                });
+            });
+        }
+
+        // Clear history
+        function clearHistory() {
+            if (scanHistory.length === 0) return;
+            
+            if (confirm('আপনি কি নিশ্চিত যে আপনি সমস্ত হিস্টোরি মুছে দিতে চান?')) {
+                scanHistory = [];
+                localStorage.setItem('scanHistory', JSON.stringify(scanHistory));
+                renderHistory();
+                showStatus('হিস্টোরি সফলভাবে ক্লিয়ার হয়েছে', 'status-success');
+            }
+        }
+
+        // Show progress
+        function showProgress(percent, text) {
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = text;
+        }
+
+        // Show status message
+        function showStatus(message, className) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${className}`;
+            statusMessage.style.display = 'block';
+            
+            setTimeout(hideStatus, 5000);
+        }
+
+        // Hide status message
+        function hideStatus() {
+            statusMessage.style.display = 'none';
+        }
+
+        // Update buttons state
+        function updateButtons() {
+            // Initial state
+            captureBtn.disabled = true;
+            resetBtn.disabled = true;
+            copyBtn.disabled = true;
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
